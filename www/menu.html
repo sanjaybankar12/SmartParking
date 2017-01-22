@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<!--
+  * Please see the included README.md file for license terms and conditions.
+  -->
+<head>
+    <title>Blank Cordova Mobile App Project Template (Lite)</title>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+
+    <!-- see http://webdesign.tutsplus.com/tutorials/htmlcss-tutorials/quick-tip-dont-forget-the-viewport-meta-tag -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <style>
+        /* following two viewport lines are equivalent to the meta viewport statement above, needed for Windows */
+        /* see http://www.quirksmode.org/blog/archives/2014/05/html5_dev_conf.html and http://dev.w3.org/csswg/css-device-adapt/ */
+        @-ms-viewport { width: 100vw ; zoom: 100% ; }  @viewport { width: 100vw ; zoom: 100% ; }
+        @-ms-viewport { user-zoom: fixed ; }           @viewport { user-zoom: fixed ; }
+    </style>
+    <link href="css/icons.css" rel="stylesheet">
+     <link rel="stylesheet" href="css/materilize.css"/> <!-- materilize css lib file -->
+     <link rel="stylesheet" href="css/style.css"/> <!-- customecss lib file -->
+    <script src="cordova.js"></script>          <!-- phantom library, needed for Cordova api calls, added during build -->
+    <script src="js/app.js"></script>           <!-- recommended location of your JavaScript code relative to other JS files -->
+      <script src="js/jquery-2.1.1.js"></script>  
+    <script src="js/materilize.js"></script>           <!-- materilize design lib file -->
+    <script src="xdk/init-dev.js"></script>     <!-- normalizes device and document ready events, see README for details -->
+    <script src="js/db.js"></script>
+    <script>
+        $(document).ready(function()
+        {
+            document.addEventListener("deviceready",onReady,false);
+        
+            function onReady()
+            {                       
+                navigator.splashscreen.hide();
+                init_client();
+
+                document.addEventListener("backbutton",onBack,false);
+            }
+
+            function onBack()
+            {
+                navigator.notification.confirm("Do you want to exit app?",onExit);
+            }
+            
+            function onExit(buttonIndex)
+            {
+                if(buttonIndex===1)
+                {
+                    navigator.app.exitApp();
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            
+            $("#logout_id").click(function()
+            {
+                window.location.href="login.html";
+            });
+            
+            $("#cancel_bookid").click(function()
+            {
+                if(navigator.connection.type!==Connection.NONE)
+                {
+                    var uid=sessionStorage.getItem("uid");
+
+                    if(uid!="")
+                    {
+                        $.ajax({
+                                type:"POST",                            url:"http://www.sanjaybankar.co.in/ieeeprojects/smartparking/getParkingId.php",
+                                data:{"uid":uid},
+                                datatype:"json",
+                                success:function(response,testStatus,jqXHR)
+                                {
+                                    var obj=response.msg;
+
+                                    sessionStorage.setItem("parkuid",JSON.stringify(obj));
+                                    window.location.href="cancelbook.html";
+                                },
+                                error:function(response,testStatus,jqXHR)
+                                {
+
+                                }
+                            });
+                    }
+                               
+                }
+                else
+                {
+                    navigator.notification.alert("Internet must to be Proceed.",function(){},"Warning","Ok");
+                }
+            });
+            
+            $("#book_parkid").click(function()
+            {
+                if(navigator.connection.type!==Connection.NONE)
+                {
+                    window.location.href="home.html";
+                }
+                else
+                {
+                    navigator.notification.alert("Internet must to be Proceed.",function(){},"Warning","Ok");
+                }
+            });
+            
+            $("#view_parkid").click(function()
+            {
+                if(navigator.connection.type!==Connection.NONE)
+                {
+                    var uid=sessionStorage.getItem("uid");
+
+                    if(uid!="")
+                    {
+                        $.ajax({
+                                type:"POST",                            url:"http://www.sanjaybankar.co.in/ieeeprojects/smartparking/getParkingId.php",
+                                data:{"uid":uid},
+                                datatype:"json",
+                                success:function(response,testStatus,jqXHR)
+                                {
+                                    var obj=response.msg;
+
+                                    sessionStorage.setItem("parkuid",JSON.stringify(obj));
+                                    window.location.href="view.html";
+                                },
+                                error:function(response,testStatus,jqXHR)
+                                {
+
+                                }
+                            });
+                    }
+                               
+                }
+                else
+                {
+                    navigator.notification.alert("Internet must to be Proceed.",function(){},"Warning","Ok");
+                }
+            });
+            
+            $("#logout").click(function()
+            {
+                navigator.notification.confirm("Do you want to logout?",function(buttonIndex){
+                    if(buttonIndex==1)
+                    {
+                        window.location.href="login.html";
+                    }
+                });
+            });
+            
+        });
+    </script>
+    <style>
+        #menu_ctr
+        {
+            text-align: center;
+        }
+        #menu_ctr h4
+        {
+            color: #fff;
+        }
+        #menu_ctr button
+        {
+            width:80%;
+            height: 40px;
+            margin: 4px auto;
+        }
+        .mid_cvr
+        {
+            margin: 18% auto;
+        }
+    </style>
+</head>
+
+<body>
+   <div id="menu_ctr">
+       <br/>
+        <h4>Smart Parking</h4>
+       <br/>
+       <div class="mid_cvr">
+        <div class="row">
+            <button type="button" class="btn red" id="book_parkid">Book Parking</button>
+       </div>
+       <div class="row">
+            <button type="button" class="btn red" id="view_parkid">View Parking</button>
+       </div>
+       <div class="row">
+            <button type="button" class="btn red" id="cancel_bookid">Cancel Booking</button>
+       </div>
+       <div class="row">
+            <button type="button" class="btn red" id="logout_id">Logout</button>
+       </div>
+       </div>
+   </div>
+</body>
+</html>

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<!--
+  * Please see the included README.md file for license terms and conditions.
+  -->
+<head>
+    <title>Blank Cordova Mobile App Project Template (Lite)</title>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+
+    <!-- see http://webdesign.tutsplus.com/tutorials/htmlcss-tutorials/quick-tip-dont-forget-the-viewport-meta-tag -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <style>
+        /* following two viewport lines are equivalent to the meta viewport statement above, needed for Windows */
+        /* see http://www.quirksmode.org/blog/archives/2014/05/html5_dev_conf.html and http://dev.w3.org/csswg/css-device-adapt/ */
+        @-ms-viewport { width: 100vw ; zoom: 100% ; }  @viewport { width: 100vw ; zoom: 100% ; }
+        @-ms-viewport { user-zoom: fixed ; }           @viewport { user-zoom: fixed ; }
+    </style>
+    <link href="css/icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/materialize.min.css"/> <!-- materilize css lib file -->
+    <link rel="stylesheet" href="css/style.css"/> <!-- customecss lib file -->
+    <link rel="stylesheet" href="css/materialize.clockpicker.css"/> <!-- customecss lib file -->
+    <script src="cordova.js"></script>          <!-- phantom library, needed for Cordova api calls, added during build -->
+    <script src="js/app.js"></script>           <!-- recommended location of your JavaScript code relative to other JS files -->
+    <script src="js/jquery-2.1.1.js"></script>  
+    <script src="js/materialize.min.js"></script>           <!-- materilize design lib file -->
+    <script src="xdk/init-dev.js"></script>     <!-- normalizes device and document ready events, see README for details -->
+    <script src="js/db.js"></script>
+    <script src="js/materialize.clockpicker.js"></script>
+    <script>
+        $(document).ready(function()
+        {
+            document.addEventListener("deviceready",onReady,false);
+            
+            $('select').material_select();
+            
+            $('.datepicker').pickadate({
+                selectMonths: true,
+                selectYears: 15,
+                format:'yyyy-mm-dd'
+            });
+            
+            $(".timepicker").pickatime({
+                default:'now',
+                twelvehour:false,
+                donetext:'OK',
+                autoclose:false,
+                darktheme:false,
+                vibrate:true
+            });
+                        
+            function onReady()
+            {                       
+                navigator.splashscreen.hide();
+                init_client();
+                
+                $("#parkloc").text(sessionStorage.getItem("parkloc"));
+                $("#basement").text(sessionStorage.getItem("basement"));
+                $("#slot").text(sessionStorage.getItem("slot"));
+            
+                document.addEventListener("backbutton",onBack,false);
+            }                                              
+            
+            function onBack()
+            {
+                window.location.href="book.html";
+                //navigator.notification.confirm("Do you want to exit app?",onExit);
+            }
+            
+            function onExit(buttonIndex)
+            {
+                if(buttonIndex===1)
+                {
+                    navigator.app.exitApp();
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            
+            $("#payid").click(function()
+            {
+                var date=$("#date").val();
+                var time=$("#time").val();
+                var duration=$("#sel_hrs").val();
+                
+                var hrs=time.split(":")[0];
+                var tottime=Math.abs(hrs)+Math.abs(duration);                                
+                
+                var pdate=new Date(date).toDateString();
+                var tdate=new Date().toDateString();
+                if(date!="" && time!="")
+                {
+                    if(pdate<tdate)
+                    {
+                        navigator.notification.alert("Parking date must be greater than or equal to current date.",function(){ },"Warning","Ok");
+                    }
+                    else if(+tottime>24)
+                    {
+                        navigator.notification.alert("Your Intime & duration not exceed the 24hrs of day.",function(){ },"Warning","Ok");
+                    }
+                    else
+                    {   
+                        var pad="";
+                        if(+tottime<10)
+                        {
+                            pad="0";
+                        }
+                        var outtime=pad+tottime+":"+time.split(":")[1];
+                        
+                        if(navigator.connection.type!==Connection.NONE)
+                        {
+                            $("#payid").attr("disabled","true");
+                            
+                            var parkloc=sessionStorage.getItem("parkloc");
+                            var basement=sessionStorage.getItem("basement");
+                            var slot=sessionStorage.getItem("slot");
+                            var uid=sessionStorage.getItem("uid");
+                            
+                            $.ajax({
+                                type:"POST",
+                                url:"http://www.sanjaybankar.co.in/ieeeprojects/smartparking/bookparking.php",
+                                data:{"parkloc":parkloc,"basement":basement,"slot":slot,"date":date,"time":time,"outtime":outtime,"uid":uid},
+                                datatype:"json",
+                                success:function(response,testStatus,jqXHR)
+                                {
+                                    $("#payid").removeAttr("disabled");
+                                    if(response.type+""=="success")
+                                    {
+                                        navigator.notification.alert("Your Booking done successfully.",function(){ },"Message","Ok");
+                                        window.location.href="proc.html";
+                                    }
+                                    else
+                                    {
+                                        navigator.notification.confirm("Already book, try  another timing details. Do you want to see availability?",function(buttonIndex){
+                                        
+                                            if(buttonIndex==1)
+                                            {
+                                                $.post("http://www.sanjaybankar.co.in/ieeeprojects/smartparking/checkavailability.php",{"parkloc":parkloc,"basement":basement,"slot":slot,"date":date,"uid":uid},function(response)
+                                                {
+                                                    $("#aval_tab tbody").children("tr").remove();
+                                                    
+                                                    //start time
+                                                    var d=new Date();
+                                                    d.setHours(0);
+                                                    d.setMinutes(0);
+                                                    d.setSeconds(0);
+                                                    var sttm=d.toTimeString();
+                                                    if(sttm<response.intm[0])
+                                                    {
+                                                         var rw="<tr><td>00:00:00 - "+response.intm[0]+"</td><td>Available</td></tr>";
+                                                         $("#aval_tab tbody").append(rw);
+                                                    }
+                                                    
+                                                    //middle time
+                                                    var lasttm=response.intm[0];
+                                                    for(var i=0;i<response.intm.length;i++)
+                                                    {
+                                                        if(lasttm<response.intm[i])
+                                                        {
+                                                            var rw="<tr><td>"+lasttm+" - "+response.intm[i]+"</td><td>Available</td></tr>";
+                                                            $("#aval_tab tbody").append(rw);
+                                                        }
+                                                        var rw="<tr><td style='color:red;'>"+response.intm[i]+" - "+response.outtm[i]+"</td><td style='color:red;'>NA</td></tr>";
+                                                        $("#aval_tab tbody").append(rw);
+                                                        lasttm=response.outtm[i];
+                                                    }
+                                                    //end time
+                                                    var d1=new Date();
+                                                    d1.setHours(23);
+                                                    d1.setMinutes(59);
+                                                    d1.setSeconds(59);
+                                                    var entm=d1.toTimeString();
+                                                    if(entm>lasttm)
+                                                    {
+                                                         var rw="<tr><td>"+lasttm+" - 23:59:59</td><td>Available</td></tr>";
+                                                        $("#aval_tab tbody").append(rw);
+                                                    }
+                                                    $("#availid").slideDown('slow');
+                                                });
+                                            }
+                                            
+                                        },"Confirm",["Yes","No"]);
+                                    }
+                                   
+                                },
+                                error:function(response,testStatus,jqXHR)
+                                {
+                                    //alert(response);
+                                    $("#payid").removeAttr("disabled");
+                                }
+                            });
+                        }
+                        else
+                        {
+                            navigator.notification.alert("Internet must to be proceed.",function(){ },"Warning","Ok");
+                        }
+                    }
+                }
+                else
+                {
+                    navigator.notification.alert("Select Date & Time of parking.",function(){ },"Warning","Ok");
+                }
+            });
+            
+            $("#logout").click(function()
+            {
+                navigator.notification.confirm("Do you want to logout?",function(buttonIndex){
+                    if(buttonIndex==1)
+                    {
+                        window.location.href="login.html";
+                    }
+                });
+            });
+            
+            $("#hide_but").click(function()
+            {
+                $("#availid").slideUp('slow');
+            });
+            
+        });
+    </script>
+    <style>
+       
+       .pay_cvr
+        {
+            text-align: center;
+        }
+        #park_info h4
+        {
+            font-weight: bold;
+            
+        }
+        #park_info td
+        {
+            font-weight: bold;
+            font-size: 18px;
+            text-align: center;
+            color: royalblue;
+        }
+        #park_info table,#park_info table tr,#park_info table tr td
+        {
+            border: 1px solid royalblue;
+            border-collapse: collapse;
+            background-color: #fff;
+        }
+        #park_info
+        {
+            width: 90%;   
+            margin: 6% auto;
+        }
+       
+        #park_info_det h4
+        {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        #park_info_det .row
+        {
+            margin:0;
+        }
+        #park_info_det
+        {
+            width: 90%;
+            margin: 2% auto;
+        }
+        #date
+        {
+            text-decoration: underline;
+            text-decoration-line: underline;
+            text-decoration-color: #fff;
+        }
+        #aval_tab,#aval_tab th,#aval_tab tbody td
+        {
+            background-color: #fff;
+            color: royalblue;
+            text-align: center;
+        }
+        #availid
+        {
+            display: none;
+        }
+        #hide_but
+        {
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="pay_cvr">
+        <h4>Book &amp; Pay</h4>
+        <div id="park_info">
+            <table class="table">
+                <tr>
+                    <td>Location</td>
+                    <td id="parkloc"></td>
+                </tr>
+                <tr>
+                    <td>Basement</td>
+                    <td id="basement"></td>
+                </tr>
+                <tr>
+                    <td>Slot</td>
+                    <td id="slot"></td>
+                </tr>
+            </table>           
+        </div>
+        <div id="park_info_det">
+            <h4>Provide Parking Details</h4>
+             <div class="row ">
+                <div class="input-field col s12">
+                    <input id="date" name="date" type="date" class="datepicker">
+                    <label for="date">Date</label>
+                </div>
+            </div>
+            <div id="availid" class="row">
+                <table id="aval_tab" class="table-bordered table-centered">
+                    <thead>
+                        <tr style="font-weight:bold;font-size:16px;">
+                            <th class="green white-text">Time Interval</th>
+                            <th class="green white-text">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>                        
+                    </tbody>
+                </table>
+                <button type="button" id="hide_but" class="btn green">Hide Availabilty Details&nbsp;&nbsp;&nbsp;<i class="mdi-hardware-keyboard-capslock"></i></button>
+            </div>
+            <div class="row">
+                <div class="input-field col s12">
+                    <input id="time" name="time" type="text" class="timepicker">
+                    <label for="time">Time</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col s12">
+                    <select id="sel_hrs">
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col s12">
+                    <button type="button" class=" btn red" id="payid">Book &amp; Pay</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        setHrs();
+        function setHrs()
+            {
+                for(var i=1;i<25;i++)
+                {
+                    var opt=document.createElement("option");
+                    opt.value=i;
+                    opt.text=i+" hrs";
+                                       
+                    $("#sel_hrs").append(opt);
+                }
+            }
+    </script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<!--
+  * Please see the included README.md file for license terms and conditions.
+  -->
+<head>
+    <title>Blank Cordova Mobile App Project Template (Lite)</title>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+
+    <!-- see http://webdesign.tutsplus.com/tutorials/htmlcss-tutorials/quick-tip-dont-forget-the-viewport-meta-tag -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <style>
+        /* following two viewport lines are equivalent to the meta viewport statement above, needed for Windows */
+        /* see http://www.quirksmode.org/blog/archives/2014/05/html5_dev_conf.html and http://dev.w3.org/csswg/css-device-adapt/ */
+        @-ms-viewport { width: 100vw ; zoom: 100% ; }  @viewport { width: 100vw ; zoom: 100% ; }
+        @-ms-viewport { user-zoom: fixed ; }           @viewport { user-zoom: fixed ; }
+    </style>
+    <link href="css/icons.css" rel="stylesheet">
+     <link rel="stylesheet" href="css/materilize.css"/> <!-- materilize css lib file -->
+     <link rel="stylesheet" href="css/style.css"/> <!-- customecss lib file -->
+    <script src="cordova.js"></script>          <!-- phantom library, needed for Cordova api calls, added during build -->
+    <script src="js/app.js"></script>           <!-- recommended location of your JavaScript code relative to other JS files -->
+      <script src="js/jquery-2.1.1.js"></script>  
+    <script src="js/materilize.js"></script>           <!-- materilize design lib file -->
+    <script src="xdk/init-dev.js"></script>     <!-- normalizes device and document ready events, see README for details -->
+    <script src="js/db.js"></script>
+    <script>
+        $(document).ready(function()
+        {
+            document.addEventListener("deviceready",onReady,false);
+            $('select').material_select();
+            
+        
+            function onReady()
+            {                       
+                navigator.splashscreen.hide();
+                init_client();
+                               
+                document.addEventListener("backbutton",onBack,false);
+            }
+                        
+            function onBack()
+            {
+                window.location.href="menu.html";
+                //navigator.notification.confirm("Do you want to exit app?",onExit);
+            }
+            
+            function onExit(buttonIndex)
+            {
+                if(buttonIndex===1)
+                {
+                    navigator.app.exitApp();
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+                    
+            $("#selpark_id").change(function()
+            {
+                var val=$(this).val();
+                if(val!="first")
+                {
+                    if(navigator.connection.type!==Connection.NONE)
+                    {
+                  
+                        $.ajax({
+                                    type:"POST",                            url:"http://www.sanjaybankar.co.in/ieeeprojects/smartparking/getParkingDetailsById.php",
+                                    data:{"pid":val},
+                                    datatype:"json",
+                                    success:function(response,testStatus,jqXHR)
+                                    {
+                                        var id=response.id;
+                                        var parkloc=response.parkloc;
+                                        var basement=response.basement;
+                                        var slot=response.slot;
+                                        var date=response.date;
+                                        var time=response.time;
+                                        var outtime=response.outtime;
+
+                                        $("#pid").text(": "+id);
+                                        $("#loc").text(": "+parkloc);
+                                        $("#bs").text(": "+basement);
+                                        $("#sid").text(": "+slot);
+                                        $("#dt").text(": "+date);
+                                        $("#tm").text(": "+time);
+                                        $("#dur").text(": "+outtime);
+                                    },
+                                    error:function(response,testStatus,jqXHR)
+                                    {
+
+                                    }
+                            });
+                    }
+                    else
+                    {
+                        navigator.notification.alert("Internet must to be Proceed.",function(){},"Warning","Ok");
+                    }
+                }
+                else
+                {
+                    $("#pid").text('');
+                    $("#loc").text('');
+                    $("#bs").text('');
+                    $("#sid").text('');
+                    $("#dt").text('');
+                    $("#tm").text('');
+                    $("#dur").text('');
+                }
+            });
+            
+            $("#logout").click(function()
+            {
+                navigator.notification.confirm("Do you want to logout?",function(buttonIndex){
+                    if(buttonIndex==1)
+                    {
+                        window.location.href="login.html";
+                    }
+                });
+            });
+            
+        });
+    </script>
+    <style>
+       #view_cvr
+        {
+            text-align: center;
+            width: 90%;
+            margin:1% auto;
+        }
+        #tabcvr 
+        {
+            background-color: #fff;
+            border-radius: 5px;
+            padding: 2%;
+            margin-top:25px;
+            text-align: center;
+        }
+        #tabcvr .br
+        {
+            border-bottom: 1px solid royalblue;
+            
+        }
+        #tabcvr table td
+        {
+            font-weight: bold;
+            font-size: 16px;
+            color: royalblue;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="view_cvr">
+        <h4>View Parking Details</h4>      
+        <div class="row">
+            <div class="col s12">
+                 <select id="selpark_id">
+                </select>
+            </div>
+        </div>
+        <div id="tabcvr">
+            <table class="table">
+                <tr class="br">
+                    <td>Parking Id</td>
+                    <td id="pid"></td>
+                </tr>
+                <tr class="br">
+                    <td>Location</td>
+                    <td id="loc"></td>
+                </tr>
+                <tr class="br">
+                    <td>Basement</td>
+                    <td id="bs"></td>
+                </tr>
+                <tr class="br">
+                    <td>Slot</td>
+                    <td id="sid"></td>
+                </tr>
+                <tr class="br">
+                    <td>Date</td>
+                    <td id="dt"></td>
+                </tr>
+                <tr class="br">
+                    <td>In-Time</td>
+                    <td id="tm"></td>
+                </tr>
+                <tr>
+                    <td>Out-Time</td>
+                    <td id="dur"></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <script>
+            var obj=JSON.parse(sessionStorage.getItem("parkuid"));
+            initId(obj);
+            function initId(obj)
+            {
+                var opt=document.createElement("option");
+                opt.value="first";
+                opt.text="Select Parking Id";
+                    
+                $("#selpark_id").append(opt);
+                for(var i=0;i<obj.length;i++)
+                {
+                    var opt=document.createElement("option");
+                    opt.value=obj[i];
+                    opt.text=obj[i];
+                    
+                    $("#selpark_id").append(opt);
+                                    
+                }     
+            }
+    </script>
+</body>
+</html>

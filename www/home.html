@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html>
+<!--
+  * Please see the included README.md file for license terms and conditions.
+  -->
+<head>
+    <title>Blank Cordova Mobile App Project Template (Lite)</title>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+
+    <!-- see http://webdesign.tutsplus.com/tutorials/htmlcss-tutorials/quick-tip-dont-forget-the-viewport-meta-tag -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <style>
+        /* following two viewport lines are equivalent to the meta viewport statement above, needed for Windows */
+        /* see http://www.quirksmode.org/blog/archives/2014/05/html5_dev_conf.html and http://dev.w3.org/csswg/css-device-adapt/ */
+        @-ms-viewport { width: 100vw ; zoom: 100% ; }  @viewport { width: 100vw ; zoom: 100% ; }
+        @-ms-viewport { user-zoom: fixed ; }           @viewport { user-zoom: fixed ; }
+    </style>
+    <link href="css/icons.css" rel="stylesheet">
+     <link rel="stylesheet" href="css/materilize.css"/> <!-- materilize css lib file -->
+     <link rel="stylesheet" href="css/style.css"/> <!-- customecss lib file -->
+    <script src="cordova.js"></script>          <!-- phantom library, needed for Cordova api calls, added during build -->
+    <script src="js/app.js"></script>           <!-- recommended location of your JavaScript code relative to other JS files -->
+      <script src="js/jquery-2.1.1.js"></script>  
+    <script src="js/materilize.js"></script>           <!-- materilize design lib file -->
+    <script src="xdk/init-dev.js"></script>     <!-- normalizes device and document ready events, see README for details -->
+    <script src="js/db.js"></script>
+    <script>
+        $(document).ready(function()
+        {
+            document.addEventListener("deviceready",onReady,false);
+            $(".button-collapse").sideNav();
+            
+            function onReady()
+            {                
+                navigator.splashscreen.hide();
+                init_client();
+                
+                sessionStorage.setItem("source","");
+                navigator.geolocation.getCurrentPosition(onSuccess,onError,{enableHighAccuracy:true});
+
+                document.addEventListener("backbutton",onBack,false);
+            }
+            
+            
+
+            function onBack()
+            {
+                window.location.href="menu.html";
+               // navigator.notification.confirm("Do you want to exit app?",onExit);
+            }
+                        
+            function onExit(buttonIndex)
+            {
+                if(buttonIndex===1)
+                {
+                    navigator.app.exitApp();
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            function onSuccess(position)
+            {
+                var long=position.coords.longitude;
+                var lat=position.coords.latitude;
+                
+                $.getJSON("https://maps.googleapis.com/maps/api/geocode/json?latlng="+lat+","+long+"&key=AIzaSyDrXYOEXEycGYBotqCHe3yROy3ngFKteIU",function(response){
+                                      
+                    $("#curlocid").text(response.results[0].formatted_address);
+                    
+                    sessionStorage.setItem("source",response.results[0].formatted_address);
+                    
+                });                                                      
+                
+                $("#locid").text(long.toFixed(6)+","+lat.toFixed(6));
+                localStorage.setItem("curlong",long.toFixed(6));
+                localStorage.setItem("curlat",lat.toFixed(6));
+                
+                $("#loadid").css({"display":"none"});
+                $("#load_done").css({"display":"initial"});
+                                
+            }
+            
+            function onError()
+            {
+                
+            }
+            
+            $("#search_but").click(function()
+            {
+                $("#search_id img").css({"display":"initial"});
+                
+                kdTree();
+                
+                
+            });
+            var min_dist=0;
+            var closestLoc="";
+            function kdTree()
+            {              
+                var parkdetails=JSON.parse(localStorage.getItem("parkdetails"));
+                
+                var node={"id":1,"name":'Current Location','loc':'center','x':xcurlong,'y':ycurlat,'dist':0,'child':[]};
+                var objtoPush=node;
+                
+                for(var i=0;i<parkdetails.length;i++)
+                {
+                    var nameofloc=parkdetails[i].name;
+                    var xloclong=parkdetails[i].loc[0];
+                    var yloclat=parkdetails[i].loc[1];
+                    
+                    var xcurlong=localStorage.getItem("curlong");
+                    var ycurlat=localStorage.getItem("curlat");
+                                        
+                    compareChildByLocation(objtoPush,i,nameofloc,xloclong,yloclat,xcurlong,ycurlat);
+                    
+                }
+                                
+                $("#closest_loc").text(closestLoc.toUpperCase());
+                localStorage.setItem("dest",closestLoc);
+
+                
+                for(var i=0;i<parkdetails.length;i++)
+                {
+                    var nlc=parkdetails[i].name;
+                    if(nlc==closestLoc)
+                    {
+                        $("#nnslocid").text(parkdetails[i].loc[0]+", "+parkdetails[i].loc[1]);
+                    }
+                }
+                
+                $("#res").css({"display":"initial"});
+                $("#search_id").css({"display":"none"});
+                
+            }
+            
+            function setDistanceFromCurrentLoc(obj)
+            {
+                var xcurlong=localStorage.getItem("curlong");
+                var ycurlat=localStorage.getItem("curlat");
+                
+                var x=obj.x;
+                var y=obj.y;
+                                     
+                var final_dist=Math.abs(xcurlong-x)+Math.abs(ycurlat-y);
+                obj.dist=final_dist;                      
+                
+                if(min_dist==0)
+                {
+                    min_dist=obj.dist;
+                    closestLoc=obj.name;
+                }
+                else if(min_dist>obj.dist)
+                {
+                    min_dist=obj.dist;
+                    closestLoc=obj.name;
+                }
+                                
+            }
+            
+            function compareChildByLocation(objtoPush,i,nameofloc,xloclong,yloclat,xcurlong,ycurlat)
+            {
+                    if((xloclong)<(xcurlong))
+                    {                    
+                        var obj={"id":i+2,"name":nameofloc,'loc':'left','x':xloclong,'y':yloclat,'dist':0,'child':[]};
+                        setDistanceFromCurrentLoc(obj);
+
+                        if(objtoPush.child[0]==null)
+                        {                            
+                            insertIntoLeft(obj,objtoPush);
+                        }
+                        else
+                        {
+                            objtoPush=objtoPush.child[0];
+                            ycurlat=objtoPush.y;
+                            if((+yloclat)<(+ycurlat))
+                            {
+                                if(objtoPush.child[0]==null)
+                                {                            
+                                    insertIntoLeft(obj,objtoPush);
+                                }
+                                else
+                                {
+                                    objtoPush=objtoPush.child[0];
+                                    xcurlong=objtoPush.x;
+                                    ycurlat=objtoPush.y;
+                                    compareChildByLocation(objtoPush,i,nameofloc,xloclong,yloclat,xcurlong,ycurlat);
+                                }
+                            }
+                            else
+                            {
+                                if(objtoPush.child[1]==null)
+                                {                            
+                                    insertIntoRight(obj,objtoPush);
+                                }
+                                else
+                                {
+                                    objtoPush=objtoPush.child[1];
+                                    xcurlong=objtoPush.x;
+                                    ycurlat=objtoPush.y;
+                                    compareChildByLocation(objtoPush,i,nameofloc,xloclong,yloclat,xcurlong,ycurlat);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {                       
+                        var obj={"id":i+2,"name":nameofloc,'loc':'right','x':xloclong,'y':yloclat,'dist':0,'child':[]};
+                        setDistanceFromCurrentLoc(obj);
+                        
+                        if(objtoPush.child[1]==null)
+                        {           
+                            insertIntoRight(obj,objtoPush);
+                        }
+                        else
+                        {                            
+                            objtoPush=objtoPush.child[1];
+                            ycurlat=objtoPush.y;
+                            if((+yloclat)<(+ycurlat))
+                            {
+                                if(objtoPush.child[0]==null)
+                                {                            
+                                    insertIntoLeft(obj,objtoPush);
+                                }
+                                else
+                                {
+                                    objtoPush=objtoPush.child[0];
+                                    xcurlong=objtoPush.x;
+                                    ycurlat=objtoPush.y;
+                                    compareChildByLocation(objtoPush,i,nameofloc,xloclong,yloclat,xcurlong,ycurlat);
+                                }
+                            }
+                            else
+                            {
+                                if(objtoPush.child[1]==null)
+                                {                            
+                                    insertIntoRight(obj,objtoPush);
+                                }
+                                else
+                                {
+                                    objtoPush=objtoPush.child[1];
+                                    xcurlong=objtoPush.x;
+                                    ycurlat=objtoPush.y;
+                                    compareChildByLocation(objtoPush,i,nameofloc,xloclong,yloclat,xcurlong,ycurlat);
+                                }
+                            }
+                        }
+                    }
+            }
+            
+            function insertIntoLeft(Node,Obj)
+            {
+                Obj.child[0]=Node;
+                
+            }
+            
+            function insertIntoRight(Node,Obj)
+            {
+                Obj.child[1]=Node;
+                
+            }
+            
+            $("#slide-out li").on('click','a',function()
+            {
+                var val=$(this).text();
+                if(val!="Logout")
+                {
+                    localStorage.setItem("dest",val);
+
+                    sessionStorage.setItem("bookloc",val.toUpperCase());
+
+                    navigator.notification.confirm("Select your choice.",onSelectChoice,"Choose",['Book','Show on Map','Cancel']);    
+                }
+                else
+                {
+                    navigator.notification.confirm("Do you want to logout?",function(buttonIndex){
+                        if(buttonIndex==1)
+                        {
+                            window.location.href="login.html";
+                        }
+                    });
+                }
+                return false;
+            });
+            
+            function onSelectChoice(buttonIndex)
+            {
+                if(buttonIndex==1)
+                {
+                    window.location.href="book.html";
+                }
+                else if(buttonIndex==2)
+                {
+                    var source=sessionStorage.getItem("source");
+                    if(navigator.connection.type!==Connection.NONE)
+                    {
+                        if(source!="")
+                        {
+                            window.location.href="map.html";
+                        }
+                        else
+                        {
+                            navigator.notification.alert("Plz. wait accessing your current location..!",function(){ },"Warning","Ok");
+                        }
+                    }
+                    else
+                    {
+                        navigator.notification.alert("Internet must to be proceed",function(){ },"Warning","Ok");
+                    }
+                }
+            }
+            
+            $("#mapshow_id").click(function()
+            {
+                window.location.href="map.html";
+            });
+
+            $("#book_id").click(function()
+            {
+                var val=$("#closest_loc").text();
+                sessionStorage.setItem("bookloc",val);
+                window.location.href="book.html";
+            });                    
+            
+        });
+    </script>
+    <style>
+       #slide-out
+        {
+            background-color: royalblue;
+        }
+        #slide-out li a
+        {
+            color: #fff;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        #slide-out li a:hover
+        {
+            color: #333;
+        }
+        
+        #loadid,#load_done
+        {
+            width: 94%;
+            text-align: center;
+            margin: 5% auto;
+        }
+        
+        #loadid h4,#load_done h4
+        {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        #search_id img
+        {
+            width: 60%;
+            margin: 3% auto;
+            display: none;
+        }
+        #res,#load_done
+        {
+            display: none;
+            text-align: center;
+        }              
+        
+        #book_id,#mapshow_id
+        {
+            width: 160px;
+            margin: 6px auto;
+        }
+        body
+        {
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="home_container">
+        <div id="header">
+            <div class="navbar-fixed cyan">
+                <nav>
+                  <div class="nav-wrapper">
+                    <a href="#" data-activates="slide-out" class="button-collapse white-text nav-btn">
+                        <i class="mdi-navigation-menu"></i>
+                      </a>
+                    <h2 class="head-title">Smart Parking&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</h2>
+                  </div>
+                </nav>
+          </div>
+        </div>
+        <ul id="slide-out" class="side-nav">
+             <li style="background-color:royalblue; font-size:20px">
+                <span>Parking Location</span>
+            </li>
+            <li>
+                <div class="divider"></div>
+            </li>
+            <li>
+                <a href="#!">Hadapasar</a>
+            </li>
+            <li>
+                <div class="divider"></div>
+            </li>
+            <li>
+                <a href="#!">Kharadi</a>
+            </li>
+            <li>
+                <div class="divider"></div>
+            </li>
+            <li>
+                <a href="#!">Viman Nagar</a>
+            </li>
+            <li>
+                <div class="divider"></div>
+            </li>
+            <li>
+                <a href="#!">Wagholi</a>
+            </li>
+            <li>
+                <div class="divider"></div>
+            </li>
+            <li>
+                <a href="#!">Shivajinagar</a>
+            </li>
+            <li>
+                <div class="divider"></div>
+            </li>
+            <li>
+                <a href="#!">Shikrapur</a>
+            </li>
+            <li>
+                <div class="divider"></div>
+            </li>
+            <li id="logout">
+                <a href="#!">Logout</a>
+            </li>
+        </ul>       
+        <div>
+            <div id="loadid" class="adv_box">
+                <h4>Plz. wait getting your location</h4>
+                <img src="images/location.gif" alt="Plz. wait loading...."/>
+            </div>    
+            <div id="load_done">
+                <h4>Your Current Location </h4>
+                <h4 id="curlocid"></h4>
+                <h4>(<span id="locid"></span>)</h4>
+                <p></p>
+                <hr style="background-color:#000; color:#000;" />
+                <br/>
+                <div>
+                    <button type="button" class="btn red" id="search_but">Search Nearest Location</button>
+                    <p>Nearest Location Search based on K-d Tree Algorithm</p>
+                </div> 
+                <div id="search_id">
+                    <img src="images/spinner.gif" alt="Seaching" />
+                </div>
+                <br/>
+                <div id="res">
+                    <h4 id="closest_loc"></h4>
+                    <h4>(<span id="nnslocid"></span>)</h4>
+                    <br/>
+                    <div style="text-align:center;">
+                        <button type="button" class="btn red" id="book_id">Book  Now</button>
+                    </div>
+                    <div style="text-align:center;">
+                        <button type="button" class="btn red" id="mapshow_id">Show on Map</button>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</body>
+</html>

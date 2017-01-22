@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<!--
+  * Please see the included README.md file for license terms and conditions.
+  -->
+<head>
+    <title>Blank Cordova Mobile App Project Template (Lite)</title>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+
+    <!-- see http://webdesign.tutsplus.com/tutorials/htmlcss-tutorials/quick-tip-dont-forget-the-viewport-meta-tag -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <style>
+        /* following two viewport lines are equivalent to the meta viewport statement above, needed for Windows */
+        /* see http://www.quirksmode.org/blog/archives/2014/05/html5_dev_conf.html and http://dev.w3.org/csswg/css-device-adapt/ */
+        @-ms-viewport { width: 100vw ; zoom: 100% ; }  @viewport { width: 100vw ; zoom: 100% ; }
+        @-ms-viewport { user-zoom: fixed ; }           @viewport { user-zoom: fixed ; }
+    </style>
+    <link href="css/icons.css" rel="stylesheet">
+     <link rel="stylesheet" href="css/materilize.css"/> <!-- materilize css lib file -->
+     <link rel="stylesheet" href="css/style.css"/> <!-- customecss lib file -->
+    <script src="cordova.js"></script>          <!-- phantom library, needed for Cordova api calls, added during build -->
+    <script src="js/app.js"></script>           <!-- recommended location of your JavaScript code relative to other JS files -->
+      <script src="js/jquery-2.1.1.js"></script>  
+    <script src="js/materilize.js"></script>           <!-- materilize design lib file -->
+    <script src="xdk/init-dev.js"></script>     <!-- normalizes device and document ready events, see README for details -->
+    <script src="js/db.js"></script>
+    <script>
+        $(document).ready(function()
+        {
+            document.addEventListener("deviceready",onReady,false);
+        
+            function onReady()
+            {                       
+                navigator.splashscreen.hide();
+                $('select').material_select();
+                init_client();                                
+                
+                document.addEventListener("backbutton",onBack,false);
+            }
+          
+            function onBack()
+            {
+                window.location.href="home.html";
+                //navigator.notification.confirm("Do you want to exit app?",onExit);
+            }
+            
+            function onExit(buttonIndex)
+            {
+                if(buttonIndex===1)
+                {
+                    navigator.app.exitApp();
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            
+            $("#selloc_id").change(function()
+            {
+                $(".slot_area").slideUp('slow');
+                $("#b1").removeClass("green");
+                $("#b2").removeClass("green");
+            });
+            
+            $("#b1").click(function()
+            {
+                $(".slot_area").slideUp('slow');
+                $(".slot_area").slideDown('slow');
+                $("#b1").removeClass("green");
+                $("#b2").removeClass("green");
+                $(this).addClass("green");
+                $("#baseid").text("B1");
+                $("#bkid").css({"display":"none"});
+                
+                $("#book_tab tr").children("td").css({"background-color":"#fff"});
+                
+                sessionStorage.setItem("basement","B1");
+                
+            });
+            
+            $("#b2").click(function()
+            {
+                $(".slot_area").slideUp('slow');
+                $(".slot_area").slideDown('slow');
+                $("#b1").removeClass("green");
+                $("#b2").removeClass("green");
+                $(this).addClass("green");
+                $("#baseid").text("B2");
+                $("#bkid").css({"display":"none"});
+                
+                $("#book_tab tr").children("td").css({"background-color":"#fff"});
+                
+                sessionStorage.setItem("basement","B2");
+                
+            });
+            
+            $("#book_tab tr").on('click','td',function()
+            {
+                $("#book_tab tr").children("td").css({"background-color":"#fff"});
+                $("#book_tab tr").children("td").css({"color":"royalblue"});
+                $(this).css({"background-color":"green"});
+                $(this).css({"color":"#fff"});
+                                
+                $("#bkid").css({"display":"initial"});
+                
+                var slot=$(this).text();
+                sessionStorage.setItem("slot",slot);
+                
+                return false; 
+            });
+            
+            $("#bkid").click(function()
+            {
+                var selval=$("#selloc_id").val();
+               
+                if(selval!="")
+                {
+                    sessionStorage.setItem("parkloc",selval);
+                    
+                    window.location.href="payment.html";
+                }
+            });
+            
+            $("#logout").click(function()
+            {
+                navigator.notification.confirm("Do you want to logout?",function(buttonIndex){
+                    if(buttonIndex==1)
+                    {
+                        window.location.href="login.html";
+                    }
+                });
+            });
+            
+        });
+    </script>
+    <style>
+        #book_cvr
+        {
+            text-align: center;
+        }
+        #book_cvr .form_cvr
+        {
+            width: 90%;
+            margin: 2% auto;
+        }
+        .bt
+        {
+            margin: 10% auto;
+        }
+        .slot_area
+        {
+            margin: 5% auto;
+            width: 96%;
+            display: none;
+        }
+        
+        #book_tab caption
+        {
+            font-weight: bold;
+            font-size: 18px;
+        }
+        #book_tab tr td
+        {
+            background-color: #fff;
+            color: royalblue;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            border: 1px solid royalblue;
+        }
+        
+        #bkid
+        {
+            display: none;
+        }
+       
+    </style>
+</head>
+
+<body>
+    <div id="book_cvr">
+        <h4>Book Parking</h4>
+        <br/>
+        <div class="form_cvr"> 
+           <select class="sel" id="selloc_id">
+                <option value="HADAPASAR">HADAPASAR</option>
+                <option value="KHARADI">KHARADI</option>
+                <option value="VIMANNAGAR">VIMANNAGAR</option>
+                <option value="WAGHOLI">WAGHOLI</option>
+                <option value="SHIVAJINAGAR">SHIVAJINAGAR</option>
+                <option value="SHIKRAPUR">SHIKRAPUR</option>
+            </select>
+            <div class="row bt">
+                <button type="button" class="btn" id="b1">B1</button>&nbsp;&nbsp;&nbsp;&nbsp;
+                <button type="button" class="btn" id="b2">B2</button>
+            </div>
+            <div class="slot_area">
+                <table id="book_tab">
+                    <caption>Basement <span id="baseid"></span></caption>
+                    <tr>
+                        <td>slot 1</td>
+                        <td>slot 2</td>
+                    </tr>
+                     <tr>
+                        <td>slot 3</td>
+                        <td>slot 4</td>
+                    </tr>
+                     <tr>
+                        <td>slot 5</td>
+                        <td>slot 6</td>
+                    </tr>
+                     <tr>
+                        <td>slot 7</td>
+                        <td>slot 8</td>
+                    </tr>
+                </table>
+                <br/>
+                <button type="button" class="btn red" id="bkid">Book</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        var bkloc=sessionStorage.getItem("bookloc");
+        $("#selloc_id").val(bkloc);
+    </script>
+</body>
+</html>
